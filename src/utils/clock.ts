@@ -40,7 +40,7 @@ export abstract class LogicalClock<LogicalTime> {
             throw new Error('LamportClock: Event name already exists');
         }
     }
-    private locateEvent(eventName: string): [number, number] | null {
+    public locateEvent(eventName: string): [number, number] | null {
         for (let lineIndex = 0; lineIndex < this.lines.length; lineIndex++) {
             const line = this.lines[lineIndex];
             const index = line.findIndex(event => event.name === eventName);

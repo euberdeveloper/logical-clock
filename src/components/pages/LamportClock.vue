@@ -13,6 +13,14 @@
         @dblclick="remove(event.name)"
       >
         {{ event.name }} - {{ event.time }}
+        <div class="arrow" v-if="event.causedBy">
+          <div>
+            <svg width="100" height="100"><line x1="0" y1="0" stroke="black"
+              :x2="locateEventDifference(event.causedBy, index, eventIndex)[1]"
+              :y2="locateEventDifference(event.causedBy, index, eventIndex)[0]"
+            /></svg>
+          </div>
+        </div>
       </div>
     </div>
     <input class="line-index" type="number" v-model="newLineIndex" placeholder="Line index" />
@@ -22,6 +30,7 @@
     <input class="from" type="text" v-model="from" placeholder="From relation" />
     <input class="to" type="text" v-model="to" placeholder="To relation" />
     <button class="add-relation" :disabled="!from || !to" @click="addRelation()">ADD RELATION</button>
+
   </div>
 </template>
 
@@ -104,6 +113,15 @@ export default class LamportClock extends Vue {
     }
   }
 
+  locateEventDifference(name: string, index: number, eventIndex: number) {
+    const r = this.lamport.locateEvent(name);
+    if (!r) return [0,0];
+    return [ 
+      (r[0] - index) * 101,
+      (r[1] -  eventIndex) * 70
+    ];
+  }
+
   remove(name: string) {
     this.lamport.removeEvent(name);
   }
@@ -141,6 +159,7 @@ export default class LamportClock extends Vue {
       justify-content: center;
       align-items: center;
       border: 1px solid black;
+      background-color: white;
     }
   }
 
@@ -152,5 +171,19 @@ export default class LamportClock extends Vue {
   .selected {
     background-color: red;
   }
+}
+
+.arrow {
+  position: absolute;
+  z-index: -100;
+  > div {
+    top: 50px;
+    left: 50px;
+    position: relative;
+  }
+}
+
+svg {
+  overflow: visible;
 }
 </style>
