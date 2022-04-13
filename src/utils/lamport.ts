@@ -5,29 +5,29 @@ export interface Event<LogicalTime> {
     causedBy?: string;
 }
 
+export abstract class LogicalClock<LogicalTime> {
+    protected static STARTING_TIME_NAME = '_____';
 
-export class LamportClock {
-    private static STARTING_TIME_NAME = '_____';
+    protected lines: Line<LogicalTime>[] = [];
 
-    private lines: Line<number>[] = [];
+    protected abstract getDefaultTime(nOfLines?: number): LogicalTime;
+    protected abstract mergeTime(lineIndex: number, lineTime: LogicalTime, scatenanteTime: LogicalTime): LogicalTime;
+    protected abstract increaseTime(lineIndex: number, lineTime: LogicalTime): LogicalTime;
 
     constructor(nOfLines = 3) {
         this.lines = Array(nOfLines).fill(0).map(() => [{
-            name: LamportClock.STARTING_TIME_NAME,
-            time: 0,
+            name: LogicalClock.STARTING_TIME_NAME,
+            time: this.getDefaultTime(nOfLines),
             causedBy: undefined
         }]);
     }
 
-    private get eventNames(): Set<string> {
-        return new Set(this.lines.flatMap(line => line.map(event => event.name)));
-    }
-    get time(): Line<number>[] {
+    get time(): Line<LogicalTime>[] {
         return this.lines.map(line => line.slice(1));
     }
 
-    private mergeTime(lineTime: number, scatenanteTime: number): number {
-        return Math.max(lineTime, scatenanteTime) + 1;
+    private get eventNames(): Set<string> {
+        return new Set(this.lines.flatMap(line => line.map(event => event.name)));
     }
 
     private validateLineIndex(index: number): void {
@@ -90,7 +90,7 @@ export class LamportClock {
 
                     if (event.time === undefined && previousEvent.time !== undefined) {
                         if (event.causedBy === undefined) {
-                            event.time = (previousEvent.time) + 1;
+                            event.time = this.increaseTime(lineIndex, previousEvent.time);
                             advance(lineIndex);
                         }
                         else {
@@ -98,7 +98,7 @@ export class LamportClock {
                             const eventoScatenante = this.lines[scatenanteLineIndex][scatenateEventIndex];
 
                             if (eventoScatenante.time != undefined) {
-                                event.time = this.mergeTime(eventoScatenante.time, previousEvent.time);
+                                event.time = this.mergeTime(lineIndex, eventoScatenante.time, previousEvent.time);
                                 advance(lineIndex);
                             }
                         }
@@ -124,17 +124,17 @@ export class LamportClock {
         }
     }
 
-    public setStartingTime(lineIndex: number, startingTime: number): void {
+    public setStartingTime(lineIndex: number, startingTime: LogicalTime): void {
         this.apply(() => {
             this.validateLineIndex(lineIndex);
             const line = this.lines[lineIndex];
             line[0].time = startingTime;
         });
     }
-    public addLine(startingTime = 0): void {
+    public addLine(startingTime?: LogicalTime): void {
         this.lines.push([{
-            name: LamportClock.STARTING_TIME_NAME,
-            time: startingTime,
+            name: LogicalClock.STARTING_TIME_NAME,
+            time: startingTime ?? this.getDefaultTime(),
             causedBy: undefined
         }]);
     }
@@ -193,5 +193,33 @@ export class LamportClock {
             this.lines = this.lines.map(line => line.filter(event => event.name !== eventName));
             this.resetCausedBy([eventName]);
         });
+    }
+}
+
+export class VectorClock extends LogicalClock<number[]> {
+    protected getDefaultTime(nOfLines?: number): number[] {
+        return Array(nOfLines ?? this.lines.length).fill(0);
+    }
+    protected mergeTime(lineIndex: number, lineTime: number[], scatenanteTime: number[]): number[] {
+        const result = scatenanteTime.map((time, index) => Math.max(time, lineTime[index]));
+        result[lineIndex]++;
+        return result;
+    }
+    protected increaseTime(lineIndex: number, lineTime: number[]): number[] {
+        const result = [...lineTime];
+        result[lineIndex]++;
+        return result;
+    }
+}
+
+export class LamportClock extends LogicalClock<number> {
+    protected getDefaultTime(): number {
+        return 0;
+    }
+    protected mergeTime(_lineIndex: number, lineTime: number, scatenanteTime: number): number {
+        return Math.max(lineTime, scatenanteTime) + 1;
+    }
+    protected increaseTime(_lineIndex: number, lineTime: number): number {
+       return lineTime + 1;
     }
 }
