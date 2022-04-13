@@ -113,13 +113,33 @@ export default class LamportClock extends Vue {
     }
   }
 
+  locateEvent(name: string) {
+    for (let i = 0; i < this.handledTime.length; i++) {
+      const x = this.handledTime[i].findIndex(x => x.name === name);
+      if (x >= 0) return [i, x]
+    }
+    return null;
+  }
+
   locateEventDifference(name: string, index: number, eventIndex: number) {
-    const r = this.lamport.locateEvent(name);
+    const r = this.locateEvent(name);
+    console.log(r)
     if (!r) return [0,0];
     return [ 
       (r[0] - index) * 101,
       (r[1] -  eventIndex) * 70
     ];
+  }
+
+  locateEventDifferenceX(name: string, index: number, eventIndex: number) {
+    const r = this.locateEvent(name);
+    console.log(r)
+    if (!r) return [0,0];
+    return r;
+    // return [ 
+    //   (r[0] - index),
+    //   (r[1] -  eventIndex)
+    // ];
   }
 
   remove(name: string) {
