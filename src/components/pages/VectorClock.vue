@@ -4,11 +4,15 @@
       <span class="title">Line {{ index }}</span>
       <div
         class="event"
+        :class="{ selected: event.name === selected }"
         v-for="(event, eventIndex) of line"
         :key="eventIndex + event.name + index"
         :style="{ visibility: event.time === undefined ? 'hidden' : 'visible' }"
         :title="event.time"
+        @click="selectEvent(event.name)"
+        @dblclick="remove(event.name)"
       >
+        >
         {{ event.name }} - {{ event.time }}
       </div>
     </div>
@@ -26,6 +30,7 @@
 import { Component, Vue } from "vue-property-decorator";
 
 import { VectorClock as Vector, Line } from "@/utils/clock";
+import { partialsort } from "@/utils/partialOrder";
 
 @Component({
   components: {},
@@ -41,6 +46,8 @@ export default class VectorClock extends Vue {
   public from = "";
   public to = "";
 
+  public selected: string | null = null;
+
   /* GETTERS */
 
   get time(): Line<number[]>[] {
@@ -48,12 +55,24 @@ export default class VectorClock extends Vue {
   }
 
   get handledTime(): Line<number[]>[] {
-    return this.time.map((line, indexone) => {
+    return this.time.map((line) => {
       const result = [] as Line<number[]>;
-      const to = line[line.length - 1]?.time?.[indexone] ?? -1;
+      let sortMap: any[] = partialsort(this.time.flat(), (x, y) => {
+        if ((x.time?.[0] as number) < y?.[0] && (x.time?.[1] as number) < y?.[1] && (x.time?.[2] as number) < y?.[2]) {
+          return -1;
+        }
+        if ((x.time?.[0] as number) > y?.[0] && (x.time?.[1] as number) > y?.[1] && (x.time?.[2] as number) > y?.[2]) {
+          return 1;
+        }
+        return 0;
+      });
+      sortMap = sortMap.map((el) => el.name);
+
+      console.log(sortMap);
+      const to = sortMap.length;
 
       for (let i = 0; i <= to; i++) {
-        const l = line.find((l) => l.time?.[indexone] === i);
+        const l = line.find((event) => event.name === sortMap[i]);
         result.push(l ?? { time: undefined, name: "bobo" });
       }
 
@@ -86,6 +105,21 @@ export default class VectorClock extends Vue {
     this.vector.addRelation(this.from, this.to);
     this.from = "";
     this.to = "";
+  }
+
+  selectEvent(name: string) {
+    if (this.selected === null) {
+      this.selected = name;
+    } else {
+      if (this.selected !== name) {
+        this.vector.addRelation(this.selected, name);
+      }
+      this.selected = null;
+    }
+  }
+
+  remove(name: string) {
+    this.vector.removeEvent(name);
   }
 }
 </script>
@@ -124,8 +158,13 @@ export default class VectorClock extends Vue {
     }
   }
 
-  .line-index, .from {
+  .line-index,
+  .from {
     margin-top: 30px;
+  }
+
+  .selected {
+    background-color: red;
   }
 }
 </style>

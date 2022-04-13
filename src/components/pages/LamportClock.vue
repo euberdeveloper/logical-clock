@@ -4,17 +4,20 @@
       <span class="title">Line {{ index }}</span>
       <div
         class="event"
+        :class="{ selected: event.name === selected }"
         v-for="(event, eventIndex) of line"
         :key="eventIndex + event.name + index"
         :style="{ visibility: event.time === undefined ? 'hidden' : 'visible' }"
         :title="event.time"
+        @click="selectEvent(event.name)"
+        @dblclick="remove(event.name)"
       >
         {{ event.name }} - {{ event.time }}
       </div>
     </div>
     <input class="line-index" type="number" v-model="newLineIndex" placeholder="Line index" />
     <input type="text" v-model="newEventName" placeholder="Event name" />
-    <button class="add" :disabled="!newEventName || newLineIndex === undefined" @click="add()">ADD EVENT</button>
+    <button class="add" :disabled="!newEventName || newLineIndex === null" @click="add()">ADD EVENT</button>
 
     <input class="from" type="text" v-model="from" placeholder="From relation" />
     <input class="to" type="text" v-model="to" placeholder="To relation" />
@@ -35,11 +38,13 @@ export default class LamportClock extends Vue {
 
   private lamport: Lamport = new Lamport();
 
-  public newLineIndex: number = undefined as any;
+  public newLineIndex: number = null as any;
   public newEventName = "";
 
   public from = "";
   public to = "";
+
+  public selected: string | null = null;
 
   /* GETTERS */
 
@@ -87,6 +92,21 @@ export default class LamportClock extends Vue {
     this.from = "";
     this.to = "";
   }
+
+  selectEvent(name: string) {
+    if (this.selected === null) {
+      this.selected = name;
+    } else {
+      if (this.selected !== name) {
+        this.lamport.addRelation(this.selected, name);
+      }
+      this.selected = null;
+    }
+  }
+
+  remove(name: string) {
+    this.lamport.removeEvent(name);
+  }
 }
 </script>
 
@@ -124,8 +144,13 @@ export default class LamportClock extends Vue {
     }
   }
 
-  .line-index, .from {
+  .line-index,
+  .from {
     margin-top: 30px;
+  }
+
+  .selected {
+    background-color: red;
   }
 }
 </style>
