@@ -13,7 +13,15 @@
         @dblclick="remove(event.name)"
       >
         >
-        {{ event.name }} - {{ event.time }}
+        {{ event.name }} - {{ event.time }}<br />
+        <div class="arrow" v-if="event.causedBy">
+          <div>
+            <svg width="100" height="100"><line x1="0" y1="0" stroke="black"
+              :x2="locateEventDifference(event.causedBy, index, eventIndex)[1]"
+              :y2="locateEventDifference(event.causedBy, index, eventIndex)[0]"
+            /></svg>
+          </div>
+        </div>
       </div>
     </div>
     <input class="line-index" type="number" v-model="newLineIndex" placeholder="Line index" />
@@ -23,6 +31,9 @@
     <input class="from" type="text" v-model="from" placeholder="From relation" />
     <input class="to" type="text" v-model="to" placeholder="To relation" />
     <button class="add-relation" :disabled="!from || !to" @click="addRelation()">ADD RELATION</button>
+    {{handledTime[0]}}<br />
+    {{handledTime[1]}}<br />
+    {{handledTime[2]}}<br />
   </div>
 </template>
 
@@ -55,29 +66,64 @@ export default class VectorClock extends Vue {
   }
 
   get handledTime(): Line<number[]>[] {
-    return this.time.map((line) => {
-      const result = [] as Line<number[]>;
-      let sortMap: any[] = partialsort(this.time.flat(), (x, y) => {
-        if ((x.time?.[0] as number) < y?.[0] && (x.time?.[1] as number) < y?.[1] && (x.time?.[2] as number) < y?.[2]) {
-          return -1;
-        }
-        if ((x.time?.[0] as number) > y?.[0] && (x.time?.[1] as number) > y?.[1] && (x.time?.[2] as number) > y?.[2]) {
-          return 1;
-        }
-        return 0;
-      });
-      sortMap = sortMap.map((el) => el.name);
+    const orTimes = this.time.flat();
+    let el = this.time.map((t, i) => {
+      return t.map(x => {
+        const newTime = [...(x.time as number[])];
+        newTime[i]--;
+        return { ...x, time: newTime, orIndex: i };
+      })
+    }).flat();
 
-      console.log(sortMap);
-      const to = sortMap.length;
+    const resLines = [ [], [], [] ] as Line<number[]>[];
+    for (let i = 0; i < 10; i++) {
+      const sel = el.filter(x => x.time.every(n => n < i));
+      el = el.filter(x => !sel.includes(x) );
 
-      for (let i = 0; i <= to; i++) {
-        const l = line.find((event) => event.name === sortMap[i]);
-        result.push(l ?? { time: undefined, name: "bobo" });
+      if (sel.length >= 0) {
+        let tempLines = [ [], [], [] ] as Line<number[]>[];
+        sel.forEach(s => { tempLines[s.orIndex].push(s) })
+        tempLines = tempLines.map((tl, i) => tl.sort((a, b) => (a.time?.[i] as number) - (b.time?.[i] as number)));
+        const maxI = Math.max(...tempLines.map(tl => tl.length));
+        
+        
+        if (maxI > 0) {
+          for (let i = 0; i < resLines.length; i++) {
+            for (let j = 0; j < maxI; j++) {
+              const empty =  { time: undefined, name: "bobo" };
+              resLines[i].push(tempLines[i][j] ? 
+                (orTimes.find(ot => ot.name === tempLines[i][j].name) ?? empty)
+                : empty
+              );
+            }
+          }
+        }
       }
+    }
+    return resLines;
+    // return this.time.map((line) => {
+    //   const result = [] as Line<number[]>;
+    //   let sortMap: any[] = partialsort(this.time.flat(), (x, y) => {
+    //     if ((x.time?.[0] as number) <= y?.[0] && (x.time?.[1] as number) <= y?.[1] && (x.time?.[2] as number) <= y?.[2]) {
+    //       return -1;
+    //     }
+    //     if ((x.time?.[0] as number) >= y?.[0] && (x.time?.[1] as number) >= y?.[1] && (x.time?.[2] as number) >= y?.[2]) {
+    //       return 1;
+    //     }
+    //     return 0;
+    //   });
+    //   sortMap = sortMap.map((el) => el.name);
 
-      return result;
-    });
+    //   // console.log(sortMap);
+    //   const to = sortMap.length;
+
+    //   for (let i = 0; i <= to; i++) {
+    //     const l = line.find((event) => event.name === sortMap[i]);
+    //     result.push(l ?? { time: undefined, name: "bobo" });
+    //   }
+
+    //   return result;
+    // });
   }
 
   /* LIFE CYCLE */
@@ -118,6 +164,23 @@ export default class VectorClock extends Vue {
     }
   }
 
+  locateEvent(name: string) {
+    for (let i = 0; i < this.handledTime.length; i++) {
+      const x = this.handledTime[i].findIndex(x => x.name === name);
+      if (x >= 0) return [i, x]
+    }
+    return null;
+  }
+
+  locateEventDifference(name: string, index: number, eventIndex: number) {
+    const r = this.locateEvent(name);
+    if (!r) return [0,0];
+    return [ 
+      (r[0] - index) * 101,
+      (r[1] -  eventIndex) * 120
+    ];
+  }
+
   remove(name: string) {
     this.vector.removeEvent(name);
   }
@@ -155,6 +218,7 @@ export default class VectorClock extends Vue {
       justify-content: center;
       align-items: center;
       border: 1px solid black;
+      background-color: white;
     }
   }
 
@@ -164,7 +228,20 @@ export default class VectorClock extends Vue {
   }
 
   .selected {
-    background-color: red;
+    background-color: red !important;
   }
+}
+.arrow {
+  position: absolute;
+  z-index: -100;
+  > div {
+    top: 50px;
+    left: 50px;
+    position: relative;
+  }
+}
+
+svg {
+  overflow: visible;
 }
 </style>
