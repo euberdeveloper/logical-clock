@@ -13,7 +13,7 @@
         @dblclick="remove(event.name)"
       >
         >
-        {{ event.name }} - {{ event.time }}<br />
+        {{ event.name }} - {{ event.time }}
         <div class="arrow" v-if="event.causedBy">
           <div>
             <svg width="100" height="100"><line x1="0" y1="0" stroke="black"
@@ -72,8 +72,10 @@ export default class VectorClock extends Vue {
       })
     }).flat();
 
+    const maxTime = Math.max(...orTimes.map(x => x.time ?? []).flat()) + 2;
+
     const resLines = this.time.map(_ => []) as Line<number[]>[];
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < maxTime; i++) {
       const sel = el.filter(x => x.time.every(n => n < i));
       el = el.filter(x => !sel.includes(x) );
 
@@ -123,18 +125,6 @@ export default class VectorClock extends Vue {
     // });
   }
 
-  /* LIFE CYCLE */
-
-  created() {
-    this.vector.addEvent(0, "a");
-    this.vector.addEvent(1, "b");
-    this.vector.addEvent(2, "c");
-    this.vector.addEvent(2, "d");
-    this.vector.addEvent(2, "e");
-    this.vector.addEvent(2, "f");
-    this.vector.addEvent(0, "g");
-    this.vector.addRelation("f", "g");
-  }
 
   /* METHODS */
 
@@ -180,6 +170,23 @@ export default class VectorClock extends Vue {
 
   remove(name: string) {
     this.vector.removeEvent(name);
+  }
+
+  /* LIFECYCLE */
+
+  created() {
+    const nOfLines = +this.$route.query.lines;
+    if (!isNaN(nOfLines)) {
+      this.vector = new Vector(nOfLines);
+    }
+    this.vector.addEvent(0, "a");
+    this.vector.addEvent(1, "b");
+    this.vector.addEvent(2, "c");
+    this.vector.addEvent(2, "d");
+    this.vector.addEvent(2, "e");
+    this.vector.addEvent(2, "f");
+    this.vector.addEvent(0, "g");
+    this.vector.addRelation("f", "g");
   }
 }
 </script>
