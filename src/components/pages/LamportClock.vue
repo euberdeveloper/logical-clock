@@ -11,6 +11,7 @@
         :title="event.time"
         @click="selectEvent(event.name)"
         @dblclick="remove(event.name)"
+        @contextmenu="removeRelation(event.name)"
       >
         {{ event.name }} - {{ event.time }}
         <div class="arrow" v-if="event.causedBy">
@@ -119,6 +120,10 @@ export default class LamportClock extends Vue {
     this.lamport.addRelation(this.from, this.to);
     this.from = "";
     this.to = "";
+  }
+
+  removeRelation(name: string) {
+    this.lamport.removeRelation(name)
   }
 
   selectEvent(name: string) {

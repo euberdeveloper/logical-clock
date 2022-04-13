@@ -11,6 +11,7 @@
         :title="event.time"
         @click="selectEvent(event.name)"
         @dblclick="remove(event.name)"
+        @contextmenu="removeRelation(event.name)"
       >
         >
         {{ event.name }} - {{ event.time }}
@@ -138,6 +139,10 @@ export default class VectorClock extends Vue {
     this.vector.addRelation(this.from, this.to);
     this.from = "";
     this.to = "";
+  }
+
+  removeRelation(name: string) {
+    this.vector.removeRelation(name)
   }
 
   selectEvent(name: string) {

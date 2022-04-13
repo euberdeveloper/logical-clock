@@ -163,12 +163,11 @@ export abstract class LogicalClock<LogicalTime> {
             this.lines[lineIndex][eventIndex].causedBy = from;
         });
     }
-    public removeRelation(from: string, to: string): void {
+    public removeRelation(to: string): void {
         this.apply(() => {
-            const fromLocation = this.locateEvent(from);
             const toLocation = this.locateEvent(to);
 
-            if (!fromLocation || !toLocation) {
+            if (!toLocation) {
                 throw new Error('LamportClock: Event name does not exist');
             }
 
