@@ -169,7 +169,7 @@ export default class LamportClock extends Vue {
   }
 
   .selected {
-    background-color: red;
+    background-color: red !important;
   }
 }
 
