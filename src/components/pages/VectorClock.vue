@@ -31,9 +31,6 @@
     <input class="from" type="text" v-model="from" placeholder="From relation" />
     <input class="to" type="text" v-model="to" placeholder="To relation" />
     <button class="add-relation" :disabled="!from || !to" @click="addRelation()">ADD RELATION</button>
-    {{handledTime[0]}}<br />
-    {{handledTime[1]}}<br />
-    {{handledTime[2]}}<br />
   </div>
 </template>
 
@@ -75,13 +72,13 @@ export default class VectorClock extends Vue {
       })
     }).flat();
 
-    const resLines = [ [], [], [] ] as Line<number[]>[];
+    const resLines = this.time.map(_ => []) as Line<number[]>[];
     for (let i = 0; i < 10; i++) {
       const sel = el.filter(x => x.time.every(n => n < i));
       el = el.filter(x => !sel.includes(x) );
 
       if (sel.length >= 0) {
-        let tempLines = [ [], [], [] ] as Line<number[]>[];
+        let tempLines = this.time.map(_ => []) as Line<number[]>[];
         sel.forEach(s => { tempLines[s.orIndex].push(s) })
         tempLines = tempLines.map((tl, i) => tl.sort((a, b) => (a.time?.[i] as number) - (b.time?.[i] as number)));
         const maxI = Math.max(...tempLines.map(tl => tl.length));
