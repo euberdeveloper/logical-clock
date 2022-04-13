@@ -15,10 +15,15 @@
         {{ event.name }} - {{ event.time }}
         <div class="arrow" v-if="event.causedBy">
           <div>
-            <svg width="100" height="100"><line x1="0" y1="0" stroke="black"
-              :x2="locateEventDifference(event.causedBy, index, eventIndex)[1]"
-              :y2="locateEventDifference(event.causedBy, index, eventIndex)[0]"
-            /></svg>
+            <svg width="100" height="100">
+              <line
+                x1="0"
+                y1="0"
+                stroke="black"
+                :x2="locateEventDifference(event.causedBy, index, eventIndex)[1]"
+                :y2="locateEventDifference(event.causedBy, index, eventIndex)[0]"
+              />
+            </svg>
           </div>
         </div>
       </div>
@@ -31,6 +36,9 @@
     <input class="to" type="text" v-model="to" placeholder="To relation" />
     <button class="add-relation" :disabled="!from || !to" @click="addRelation()">ADD RELATION</button>
 
+    <input class="line-index" type="number" v-model="bestiaLineIndex" placeholder="Line index" />
+    <input class="how-many-index" type="number" v-model="howMany" placeholder="How many events" />
+    <button class="add" :disabled="!howMany || bestiaLineIndex === null" @click="addMany()">ADD MANY EVENTS</button>
   </div>
 </template>
 
@@ -49,6 +57,9 @@ export default class LamportClock extends Vue {
 
   public newLineIndex: number = null as any;
   public newEventName = "";
+
+  public bestiaLineIndex: number = null as any;
+  public howMany = 0;
 
   public from = "";
   public to = "";
@@ -75,25 +86,31 @@ export default class LamportClock extends Vue {
     });
   }
 
-  /* LIFE CYCLE */
-
-  created() {
-    this.lamport.addEvent(0, "a");
-    this.lamport.addEvent(1, "b");
-    this.lamport.addEvent(2, "c");
-    this.lamport.addEvent(2, "d");
-    this.lamport.addEvent(2, "e");
-    this.lamport.addEvent(2, "f");
-    this.lamport.addEvent(0, "g");
-    this.lamport.addRelation("f", "g");
-  }
-
   /* METHODS */
 
   add() {
     this.lamport.addEvent(this.newLineIndex, this.newEventName);
     this.newEventName = "";
-    this.newLineIndex = undefined as any;
+  }
+
+  addMany() {
+    function numToSSColumn(num) {
+      num++;
+      let s = "",
+        t;
+
+      while (num > 0) {
+        t = (num - 1) % 26;
+        s = String.fromCharCode(65 + t) + s;
+        num = ((num - t) / 26) | 0;
+      }
+      return s || undefined;
+    }
+
+    const label = numToSSColumn(this.bestiaLineIndex);
+    for (let i = 0; i < this.howMany; i++) {
+      this.lamport.addEvent(this.bestiaLineIndex, `${label}${i + 1}`);
+    }
   }
 
   addRelation() {
@@ -115,28 +132,24 @@ export default class LamportClock extends Vue {
 
   locateEvent(name: string) {
     for (let i = 0; i < this.handledTime.length; i++) {
-      const x = this.handledTime[i].findIndex(x => x.name === name);
-      if (x >= 0) return [i, x]
+      const x = this.handledTime[i].findIndex((x) => x.name === name);
+      if (x >= 0) return [i, x];
     }
     return null;
   }
 
   locateEventDifference(name: string, index: number, eventIndex: number) {
     const r = this.locateEvent(name);
-    console.log(r)
-    if (!r) return [0,0];
-    return [ 
-      (r[0] - index) * 101,
-      (r[1] -  eventIndex) * 70
-    ];
+    console.log(r);
+    if (!r) return [0, 0];
+    return [(r[0] - index) * 101, (r[1] - eventIndex) * 70];
   }
 
   locateEventDifferenceX(name: string, index: number, eventIndex: number) {
     const r = this.locateEvent(name);
-    console.log(r)
-    if (!r) return [0,0];
+    if (!r) return [0, 0];
     return r;
-    // return [ 
+    // return [
     //   (r[0] - index),
     //   (r[1] -  eventIndex)
     // ];
