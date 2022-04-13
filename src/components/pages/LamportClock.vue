@@ -1,7 +1,7 @@
 <template>
   <div class="lamport-clock">
     <div class="line" v-for="(line, index) of handledTime" :key="'l' + index">
-      <span class="title">Line {{ index }}</span>
+      <span class="title">Line {{numToSSColumn(index)}}</span>
       <div
         class="event"
         :class="{ selected: event.name === selected }"
@@ -93,8 +93,7 @@ export default class LamportClock extends Vue {
     this.newEventName = "";
   }
 
-  addMany() {
-    function numToSSColumn(num) {
+  numToSSColumn(num: number): string {
       num++;
       let s = "",
         t;
@@ -104,10 +103,13 @@ export default class LamportClock extends Vue {
         s = String.fromCharCode(65 + t) + s;
         num = ((num - t) / 26) | 0;
       }
-      return s || undefined;
+      return s || (num + '');
     }
 
-    const label = numToSSColumn(this.bestiaLineIndex);
+
+  addMany() {
+    
+    const label = this.numToSSColumn(this.bestiaLineIndex);
     for (let i = 0; i < this.howMany; i++) {
       this.lamport.addEvent(this.bestiaLineIndex, `${label}${i + 1}`);
     }
@@ -157,6 +159,15 @@ export default class LamportClock extends Vue {
 
   remove(name: string) {
     this.lamport.removeEvent(name);
+  }
+
+  /* LIFECYCLE */
+
+  created() {
+    const nOfLines = +this.$route.query.lines;
+    if (!isNaN(nOfLines)) {
+      this.lamport = new Lamport(nOfLines);
+    }
   }
 }
 </script>
